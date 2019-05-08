@@ -58,16 +58,23 @@ It includes information on the contries: economy, location, population, employme
 
 
 
-# Our conclusion for the replication of Figures 1&2 (AYSHA)
-# Our conclusion for the replication of first column of table 1 (CHAIM)
-# Our conclusion for the extensions
-# - by contenent - 
+### Our conclusion for the replication of Figures 1&2 (AYSHA)
+
+
+
+### Our conclusion for the replication of first column of table 1 (CHAIM)
+
+
+
+### Our conclusion for the extensions
+### By Continent:
 The reason we wanted to see how the civil wars broke down by continent is that we could more accurately use a  historical events timeline. So we know that the end of a Cold War was not a as important event as people originally claims. The Cold War ended in 1991, ans you can see from the figure it was in fact South Africa region that has a increase along with Asia, but eastern European actually saw a decrease after that time period. Before 1960 the civil wars was dominated by Asia and Eastern Europe (which historically is accurate). Then the colonial civil wars started to take place (North Africa and Middle East/ South Africa), and consistently played a key rile in the overall average of the civil wars in the world.
 
-# - predictibility of model - 
+### Predictability of model 
 
 
-# Figure 1 Replicatiion
+
+# Figure 1 Replication
 
 
 ```{r figure-1-replication}
