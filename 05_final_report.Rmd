@@ -184,10 +184,28 @@ rep_data_eth %>%
 ```
 
 ```{r table-1-first-column-replication}
-
-mylogit <- glm(as.factor(onset) ~ warl + gdpenl + lpopl1 + lmtnest
+# using everything the paper does for table 1
+mylogit1 <- glm(as.factor(onset) ~ warl + gdpenl + lpopl1 + lmtnest
 + ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data =repdata, family = "binomial")
-summary(mylogit)
+summary(mylogit1)
+# removing gdp
+mylogit2 <- glm(as.factor(onset) ~ warl  + lpopl1 + lmtnest
++ ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data =repdata, family = "binomial")
+summary(mylogit2)
+```
+
+```{r validating logit model}
+set.seed(42)
+ndx <- sample(nrow(repdata), floor(nrow(repdata) * 0.9))
+train <- repdata[ndx,]
+test <- repdata[-ndx,]
+logit_train <- glm(as.factor(onset) ~ warl + gdpenl + lpopl1 + lmtnest
++ ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data = train, family = "binomial")
+summary(logit_train)
+pred <- predict(logit_train, test, type="response")
+summary(pred)
+#(as.factor(test$onset))
+yTest <- as.factor(test$onset)
 
 ```
 
