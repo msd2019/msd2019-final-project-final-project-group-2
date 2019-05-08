@@ -1,4 +1,5 @@
 #!/bin/bash
-
-gzip -d -k repdata
+DATA_DIR=./data
+cd $DATA_DIR
+unzip repdata
 rm repdata.zip
