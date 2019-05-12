@@ -23,7 +23,10 @@ library(ROCR)
 library(pROC)
 library(e1071)
 library(formattable)
-
+library(caret)
+library("loo")
+library("rstan")
+library("rstanarm")
 theme_set(theme_bw())
 
 knitr::opts_chunk$set(echo = TRUE)
@@ -35,7 +38,7 @@ Fearon and Laitin analyzed post-WWII global civil wars to see if they could crea
 
 They defined civil war as conflicts that meet three criteria: involved fighting between agents of a state and organized nonstate groups who sought to take control of a government policicies, the conflict killed at least 1,000 over its course with at least an average of 100 yearly deaths, and at least 100 were killed on both sides, including civilians attacked by rebels
 
-Eleven hypotheses were were investigated. For example one was: "measures of country's ethnic or religious diversity should be associated with a higher risk of civil war." And most of the other followed suit but with different parameters in the hypothesis. 
+Eleven hypotheses were were investigated. For example one was: "measures of country's ethnic or religious diversity should be associated with a higher risk of civil war." And most of the other followed suit but with different parameters in the hypothesis.
 
 The paper concluded that there was not enough evidence to conclude that any of the hypothesis were on target and finished with saying that civil wars are incredible hard to predict, but it is easier to predict insurgencies. It includes a cast of doubt on three wide-held notions concerning political conflict findings: prevalence of civil war in the 1990s was not due to the end of the Cold War, greater religious and/or ethnic diversity, on its own does not make a country more prone to civil war, and cannot predict where a civil war will break out - based off of strong ethnic or political grievances. 
 
@@ -50,12 +53,13 @@ We seek to replicate the following two figures from the paper. Figure 1 plots th
 # Overview of Data
 
 
-Their dataset uses data across the world from the period of 1945-1999 on 161 countries that had a population of at least hal a million in 1990.
+Their dataset uses data across the world from the period of 1945-1999 on 161 countries that had a population of at least half a million in 1990.
 
 It includes information on the contries: economy, location, population, employment, minerals/resources, civil war information (time frame, deaths, leader, etc.), ethnic onset, oil, GDP, Colonial country, religion percentage, and more. It allows us to explore various parameteres. 
-
+Originally we had used the data as is, but realized that one row had onset==4 so we got rid of it as it seemed to be an anomaly so we got rid of it.
 
 # Conclusions
+The paper concludes: "The prevalence of internal war in the 1990s is mainly the result of an accumulation of protracted conflicts since the 1950s rather than a sudden change associated with a new, post-Cold War international system."
 
 
 
@@ -63,24 +67,27 @@ It includes information on the contries: economy, location, population, employme
 
 
 
-### Our conclusion for the replication of first column of table 1 (CHAIM)
+### Our conclusion for the replication of first column of table 1
 
-
+Model 1 in Table 1 shows the results of a logit analysis.
+using onset as the dependent variable. With a standard glm model we were easily able to recreate column 1 of table 1.
 
 ### Our conclusion for the extensions
 ### By Continent 
-The reason we wanted to see how the civil wars broke down by continent is that we could more accurately use a  historical events timeline. So we know that the end of a Cold War was not a as important event as people originally claims. The Cold War ended in 1991, ans you can see from the figure it was in fact South Africa region that has a increase along with Asia, but eastern European actually saw a decrease after that time period. Before 1960 the civil wars was dominated by Asia and Eastern Europe (which historically is accurate). Then the colonial civil wars started to take place (North Africa and Middle East/ South Africa), and consistently played a key rile in the overall average of the civil wars in the world.
+[Note: South Africa here refers to the geographic South Africa, not specifically the country South Africa]
+The reason we wanted to see how the civil wars broke down by continent is that we could more accurately use a  historical events timeline. So we know that the end of a Cold War was not as important an event as people originally claim. The Cold War ended in ~1991, and you can see from the figure it was in fact South Africa region that has a increase along with Asia, but eastern European actually saw a decrease after that time period. Before 1960 the civil wars was dominated by Asia and Eastern Europe (which historically is accurate). Then the colonial civil wars started to take place (North Africa and Middle East/ South Africa), and consistently played a key role in the overall average of the civil wars in the world.
 
-We can see that a short time after World War II the only two regions that had civil wars was East Europe and Asia, which complety makes sense Asia was still deveoloping (from colonialism) And East Europe was engulfed by USSR so they tried to reble to have their countries back.
+We can see that a short time after World War II the only two regions that had civil wars were Eastern Europe and Asia, which complety makes sense since Asia was still deveoloping (from colonialism). And Eastern Europe was engulfed by the USSR so there was a tension between the Soviet Union leaders and the satellite states, and by extension the political leaders withing those states, those loyal to the party and those who were not.
 
-Another war we can look at our result is through an economic view. We know that after World War II the victors had an economic growth period called the Golden Age starting at 1950 which lasted until early 1970's. So the countries that were involved in the Golden Age saw less civil wars during that time period. However, 1971 was the collapse of the Bretton Woods Monetary system, then 1973 was an oil crisis, followed by the american stock market crashing/recession from 1973-1975. These events could suggest why we saw a increase in South African and North Africa/Middle East civil wars, as colonialism was falling and the oil crisis brought a downturn to their economy which drove them to civil wars.
+We can look at a these conflicts through an economic view. We know that after World War II the victors had an economic growth period called the postwar economic boom starting at 1950 which lasted until early 1970's. So the countries that were involved in the postwar economic boom saw fewer civil wars during that time period. However, 1971 was the collapse of the Bretton Woods Monetary system, then in 1973 there was an oil crisis, followed by the american economic recession from 1973-1975. These events could suggest why we saw a increase in South African and North Africa/Middle East civil wars, as the vestiges of institutional colonialism was fading away and the oil crisis brought a downturn to their economy which drove them to civil wars. This is similar to the political conflicts in European states post WWI, where there was a civil war.
 
-Then with the collaspe of the Soviet Union in late 1991 brought some civil wars to East Europe and Asia, but from what we can see it was not a true indicator of civil wars (from the percentages).
+Then with the collapse of the Soviet Union in late 1991 brought some civil wars to East Europe and Asia, but from what we can see it was not a true indicator of civil wars (from the percentages).
 
 We believe that the rise of the South Africa civil wars in the 90's(after the colonial revolutions) was due to mineral resources. Internal conflict was brought up due to different groups of a recently developed country fighting for minerals in order to get money. 
 
 ### Predictability of model 
 
+We dropped one Russia becase it was the only country whose onset (which is what the paper is trying to predict on) is not 0 or 1. 
 
 
 # Figure 1 Replication
@@ -88,6 +95,8 @@ We believe that the rise of the South Africa civil wars in the 90's(after the co
 
 ```{r figure-1-replication}
 repdata <- read.dta("./data/repdata.dta")
+# removing onset == 4
+repdata <-repdata[-2496, ]
 
 glance(repdata)
 # View(repdata)
@@ -193,30 +202,66 @@ rep_data_eth %>%
 ```
 
 ```{r table-1-first-column-replication}
+
 # using everything the paper does for table 1
-mylogit1 <- glm(as.factor(onset) ~ warl + gdpenl + lpopl1 + lmtnest
+mylogit1 <- glm(onset ~ warl + gdpenl + lpopl1 + lmtnest
 + ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data =repdata, family = "binomial")
 summary(mylogit1)
 # removing gdp
-mylogit2 <- glm(as.factor(onset) ~ warl  + lpopl1 + lmtnest
+mylogit2<- glm(onset ~ warl  + lpopl1 + lmtnest
 + ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data =repdata, family = "binomial")
 summary(mylogit2)
+# removing ethfrac
+mylogit3 <- glm(onset ~ warl  + gdpenl + lpopl1 + lmtnest
++ ncontig + Oil + nwstate + instab + polity2l +  relfrac,  data =repdata, family = "binomial")
+summary(mylogit3)
+
 ```
 
+
+### Analysis using Stan and Loo
+```{r using stan to reproduce table 1}
+# using everything the paper does for table 1
+# resource https://uw-csss-564.github.io/assignment-2017-4//
+#mylogit1_stan <- stan_glm(onset ~ warl + gdpenl + lpopl1 + lmtnest
+#+ ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data =repdata, family = "binomial")
+#summary(mylogit1)
+# removing gdp
+#mylogit2_stan<- stan_glm(onset ~ warl  + lpopl1 + lmtnest
+#+ ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data =repdata, family = "binomial")
+#summary(mylogit2)
+
+# Leave-One-Out (LOO) cross-validation, which is implemented by the loo function in the loo package
+
+#loo_mod1 <- loo(mylogit1_stan)
+#loo_mod2 <- loo(mylogit2_stan)
+#compare(loo_mod1,loo_mod2)
+```
+It took too long to run, so we commented it out becuase we kept on having to run our code. But it does show that the model that doesn't have gdp is slightly worse, which is of course expeced.
+
+
+### Some more validations on the logit model
 ```{r validating logit model}
-set.seed(42)
-ndx <- sample(nrow(repdata), floor(nrow(repdata) * 0.9))
-train <- repdata[ndx,]
-test <- repdata[-ndx,]
-logit_train <- glm(as.factor(onset) ~ warl + gdpenl + lpopl1 + lmtnest
-+ ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data = train, family = "binomial")
-summary(logit_train)
-pred <- predict(logit_train, test, type="response")
-summary(pred)
-#(as.factor(test$onset))
-yTest <- as.factor(test$onset)
+data(repdata)
+Train <- createDataPartition(repdata$onset, p=0.6, list=FALSE)
+training <- repdata[ Train, ]
+testing <- repdata[ -Train, ]
+
+mylogit1_test <- glm(as.factor(onset) ~ warl  + lpopl1 + lmtnest
++ ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data = training,family = "binomial")
+mylogit1_train_pred  <- predict(mylogit1_test, data=training,type="response")
+head(mylogit1_train_pred)
+mylogit1_test_pred <- predict(mylogit1_test, data=testing,type="response")
+head(mylogit1_test_pred)
+log_odds = predict(mylogit1, testing)
 
 ```
+
+### conclusion for the replication of first column of table 1 
+Model 1 in Table 1 shows the results of a logit analysis
+using onset as the dependent variable. 
+
+
 
 # Extensions
 
@@ -419,47 +464,47 @@ yTest <- test$outcome
 # model <- naiveBayes(xTrain, yTrain)
 # summary(model)
 
-model <- naiveBayes(outcome ~ warl + gdpenl + lpopl1 + lmtnest
-+ ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data = train, family = "binomial")
-summary(model)
+model1 <- naiveBayes(outcome ~ warl + lpopl1 + lmtnest
++ ncontig + nwstate + instab + polity2l + ethfrac + relfrac,  data = train, family = "binomial")
+summary(model1)
 
-df <- data.frame(actual = yTest, pred = predict(model, test))
+df1 <- data.frame(actual = yTest, pred = predict(model1, test))
 
-head(df)
+head(df1)
 
-table(df)
+table(df1)
 
 # accuracy: fraction of correct classifications
-df %>%
+df1 %>%
   summarize(acc = mean(pred == actual))
 
 # precision: fraction of positive predictions that are actually true
-df %>%
+df1 %>%
   filter(pred == 'civil_war') %>%
   summarize(prec = mean(actual == 'civil_war'))
 
 # recall: fraction of true examples that we predicted to be positive
 # aka true positive rate, sensitivity
-df %>%
+df1 %>%
   filter(actual == 'civil_war') %>%
   summarize(recall = mean(pred == 'civil_war'))
 
 # false positive rate: fraction of false examples that we predicted to be positive
-df %>%
+df1 %>%
   filter(actual == 'no_war') %>%
   summarize(fpr = mean(pred == 'civil_war'))
 
 # plot histogram of predicted probabilities
 # note overconfident predictions
-probs <- data.frame(predict(model, test, type="raw"))
+probs1 <- data.frame(predict(model1, test, type="raw"))
 
-ggplot(probs, aes(x = civil_war)) +
+ggplot(probs1, aes(x = civil_war)) +
   geom_histogram(binwidth = 0.01) +
   scale_x_continuous(label = percent) +
   xlab('Predicted probability of civil war') +
   ylab('Number of examples')
 
-data.frame(predicted=probs[, "civil_war"], actual=yTest) %>%
+data.frame(predicted=probs1[, "civil_war"], actual=yTest) %>%
   group_by(predicted=round(predicted*10)/10) %>%
   summarize(num=n(), actual=mean(actual == "civil_war")) %>%
   ggplot(data=., aes(x=predicted, y=actual, size=num)) +
@@ -471,15 +516,146 @@ data.frame(predicted=probs[, "civil_war"], actual=yTest) %>%
   ylab('Percent that are actually civil war')
 
 # create a ROCR object
-pred <- prediction(probs[, "civil_war"], yTest)
+pred1 <- prediction(probs1[, "civil_war"], yTest)
 
 # create a ROCR object
-pred <- prediction(probs[, "civil_war"], yTest)
+pred1 <- prediction(probs1[, "civil_war"], yTest)
 
 # plot ROC curve
-perf_nb <- performance(pred, measure='tpr', x.measure='fpr')
-plot(perf_nb)
-performance(pred, 'auc')
+perf_nb1 <- performance(pred1, measure='tpr', x.measure='fpr')
+plot(perf_nb1)
+performance(pred1, 'auc')
+
+```
+
+```{r remove-oil-gdp}
+
+model1 <- naiveBayes(outcome ~ warl + lpopl1 + lmtnest
++ ncontig + nwstate + instab + polity2l + ethfrac + relfrac,  data = train, family = "binomial")
+summary(model1)
+
+df1 <- data.frame(actual = yTest, pred = predict(model1, test))
+
+head(df1)
+
+table(df1)
+
+# accuracy: fraction of correct classifications
+df1 %>%
+  summarize(acc = mean(pred == actual))
+
+# precision: fraction of positive predictions that are actually true
+df1 %>%
+  filter(pred == 'civil_war') %>%
+  summarize(prec = mean(actual == 'civil_war'))
+
+# recall: fraction of true examples that we predicted to be positive
+# aka true positive rate, sensitivity
+df1 %>%
+  filter(actual == 'civil_war') %>%
+  summarize(recall = mean(pred == 'civil_war'))
+
+# false positive rate: fraction of false examples that we predicted to be positive
+df1 %>%
+  filter(actual == 'no_war') %>%
+  summarize(fpr = mean(pred == 'civil_war'))
+
+# plot histogram of predicted probabilities
+# note overconfident predictions
+probs1 <- data.frame(predict(model1, test, type="raw"))
+
+ggplot(probs1, aes(x = civil_war)) +
+  geom_histogram(binwidth = 0.01) +
+  scale_x_continuous(label = percent) +
+  xlab('Predicted probability of civil war') +
+  ylab('Number of examples')
+
+data.frame(predicted=probs1[, "civil_war"], actual=yTest) %>%
+  group_by(predicted=round(predicted*10)/10) %>%
+  summarize(num=n(), actual=mean(actual == "civil_war")) %>%
+  ggplot(data=., aes(x=predicted, y=actual, size=num)) +
+  geom_point() +
+  geom_abline(linetype=2) +
+  scale_x_continuous(labels=percent, lim=c(0,1)) +
+  scale_y_continuous(labels=percent, lim=c(0,1)) +
+  xlab('Predicted probability of civil war') +
+  ylab('Percent that are actually civil war')
+
+# create a ROCR object
+pred1 <- prediction(probs1[, "civil_war"], yTest)
+
+# create a ROCR object
+pred1 <- prediction(probs1[, "civil_war"], yTest)
+
+# plot ROC curve
+perf_nb1 <- performance(pred1, measure='tpr', x.measure='fpr')
+plot(perf_nb1)
+performance(pred1, 'auc')
+
+```
+
+```{r keep-one-factor}
+
+model2 <- naiveBayes(outcome ~ instab ,  data = train, family = "binomial")
+summary(model2)
+
+df2 <- data.frame(actual = yTest, pred = predict(model2, test))
+
+head(df2)
+
+table(df2)
+
+# accuracy: fraction of correct classifications
+df2 %>%
+  summarize(acc = mean(pred == actual))
+
+# precision: fraction of positive predictions that are actually true
+df2 %>%
+  filter(pred == 'civil_war') %>%
+  summarize(prec = mean(actual == 'civil_war'))
+
+# recall: fraction of true examples that we predicted to be positive
+# aka true positive rate, sensitivity
+df2 %>%
+  filter(actual == 'civil_war') %>%
+  summarize(recall = mean(pred == 'civil_war'))
+
+# false positive rate: fraction of false examples that we predicted to be positive
+df2 %>%
+  filter(actual == 'no_war') %>%
+  summarize(fpr = mean(pred == 'civil_war'))
+
+# plot histogram of predicted probabilities
+# note overconfident predictions
+probs2 <- data.frame(predict(model2, test, type="raw"))
+
+ggplot(probs2, aes(x = civil_war)) +
+  geom_histogram(binwidth = 0.01) +
+  scale_x_continuous(label = percent) +
+  xlab('Predicted probability of civil war') +
+  ylab('Number of examples')
+
+data.frame(predicted=probs2[, "civil_war"], actual=yTest) %>%
+  group_by(predicted=round(predicted*10)/10) %>%
+  summarize(num=n(), actual=mean(actual == "civil_war")) %>%
+  ggplot(data=., aes(x=predicted, y=actual, size=num)) +
+  geom_point() +
+  geom_abline(linetype=2) +
+  scale_x_continuous(labels=percent, lim=c(0,1)) +
+  scale_y_continuous(labels=percent, lim=c(0,1)) +
+  xlab('Predicted probability of civil war') +
+  ylab('Percent that are actually civil war')
+
+# create a ROCR object
+pred2 <- prediction(probs2[, "civil_war"], yTest)
+
+# create a ROCR object
+pred2 <- prediction(probs2[, "civil_war"], yTest)
+
+# plot ROC curve
+perf_nb2 <- performance(pred2, measure='tpr', x.measure='fpr')
+plot(perf_nb2)
+performance(pred2, 'auc')
 
 ```
 
