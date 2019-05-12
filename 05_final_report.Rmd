@@ -67,6 +67,7 @@ Having a poor economy with a bleak future can make joining an insurgency an appe
 
 
 ### Our conclusion for the replication of Figures 1&2 
+
 Figure 1 plots the number of ongoing civil wars and percent of countries with civil war over tie (1945 - 1999). This plot was fairly simple to replicate, by grouping by year.
 
 Figure 2 is a contour plot that plots the percentile of countries in civil war versus population fractions of the majority ethnic group and GDP. This plot is very difficult to understand, so we broke it down into 2 plots: one that plots percentile of countries in civil war versus GDP per capita, the other per fraction of the largest ethnicity group. The two plots we produced were actually not that easy to decipher either. This explains why the authors chose a contour plot. 
@@ -76,7 +77,7 @@ Figure 2 is a contour plot that plots the percentile of countries in civil war v
 Model 1 in Table 1 shows the results of a logit analysis.
 using onset as the dependent variable. With a standard glm model we were easily able to recreate column 1 of table 1.
 
-### Our conclusion for the extensions
+### Our conclusions for the extensions
 ### By Continent 
 [Note: South Africa here refers to the geographic South Africa, not specifically the country South Africa]
 The reason we wanted to see how the civil wars broke down by continent is that we could more accurately use a  historical events timeline. So we know that the end of a Cold War was not as important an event as people originally claim. The Cold War ended in ~1991, and you can see from the figure it was in fact South Africa region that has a increase along with Asia, but eastern European actually saw a decrease after that time period. Before 1960 the civil wars was dominated by Asia and Eastern Europe (which historically is accurate). Then the colonial civil wars started to take place (North Africa and Middle East/ South Africa), and consistently played a key role in the overall average of the civil wars in the world.
@@ -102,8 +103,6 @@ repdata <- read.dta("./data/repdata.dta")
 # removing onset == 4
 repdata <-repdata[-2496, ]
 
-glance(repdata)
-# View(repdata)
 
 sumwars_per_year <- repdata %>%
   group_by(year) %>%
@@ -128,8 +127,6 @@ raw_num_countries <- repdata %>%
 
 perc_civil_war <- merge(wars_per_year, raw_num_countries, by = "year")
 perc_civil_war <- merge(perc_civil_war, sumwars_per_year, by = "year")
-
-# View(perc_civil_war)
 
 perc_civil_war$perc <- (perc_civil_war$count_wars/perc_civil_war$count_countries)*100
 
@@ -172,7 +169,6 @@ gdp_per_year$gdp_pc <- gdp_per_year$gdp_sum / gdp_per_year$pop_sum * 10000
 gdp_per_year_perc <- merge(gdp_per_year, perc_civil_war, by = "year")
 gdp_per_year_perc$cv_percentile <- round(gdp_per_year_perc$perc / max(gdp_per_year_perc$perc), digits = 4)
 
-# View(gdp_per_year_perc)
 
 gdp_per_year_perc %>%
   ggplot(aes(x = perc, y = gdp_pc)) +
@@ -195,7 +191,6 @@ rep_data_eth <- repdata %>%
 
 rep_data_eth$war_perc = rep_data_eth$sumwars_per_eth/rep_data_eth$sum_countries
 
-# View(rep_data_eth)
 
 rep_data_eth %>%
   ggplot(aes(x = war_perc, y = ethfrac_rounded)) +
@@ -244,7 +239,7 @@ summary(mylogit3)
 #loo_mod2 <- loo(mylogit2_stan)
 #compare(loo_mod1,loo_mod2)
 ```
-It took too long to run, so we commented it out becuase we kept on having to run our code. But it does show that the model that doesn't have gdp is slightly worse, which is of course expeced.
+It took too long to run the stan functions, so we commented it out becuase we kept on having to run our code. But it does show that the model that doesn't have gdp is slightly worse, which is of course expeced.
 
 
 ### Some more validations on the logit model
@@ -272,7 +267,12 @@ using onset as the dependent variable.
 
 # Extensions
 
+### Civil war by region
 
+We wanted to see each country that had a civil war in each continent and then the time frame for it
+
+We filtered by country and year looking countries that had civil wars ordered it by year, then use `ave/paste0`  to find the time frame of each civil war then took away duplicates.
+Its important to note that if a country had multiple civil wars over various time frames, we took the date of the first and the end date of the last for the time frames. This is because there was still internal disruptionduring the "off" years, which is why Russia is shown as 1946-1999, becasue they had their internal disputes early on 1946-1950, then was a part of the Cold War, up until the contry fell of which the 1992-1999 civil wars started.
 
 ```{r paper-extension civil war by region}
 
@@ -451,8 +451,11 @@ table (wars_country_year_SAF)
 table (wars_country_year_A)
 table (wars_country_year_NA)
 ```
-```{r paper-extension logistic regression analysis of outcome}
-repdata <-repdata[-2496, ]
+
+### logistic regression analysis
+
+```{r paper-extension logistic regression analysis}
+
 repdata <- repdata %>% group_by(war) %>% mutate(outcome = ifelse(war == 1 ,'1','0'))
 repdata$outcome<- as.numeric(repdata$outcome)
 
@@ -500,6 +503,7 @@ ggplot(test, aes(x = probs)) +
   xlab('Predicted probability of Civil Wars') +
   ylab('Number of examples')
 
+
 #Plot calibration
 data.frame(predicted=test$probs, actual=yTest) %>%
   group_by(predicted=round(predicted*10)/10) %>%
@@ -518,240 +522,270 @@ perf_lr <- performance(pred, measure='tpr', x.measure='fpr')
 plot(perf_lr)
 performance(pred, 'auc')
 
+```
+
+### Naive Bayes for war
+
+```{r war-naive-bayes}
 
 
-#Comparing logistic and naive
+repdata <- repdata %>% group_by(war) %>% mutate(outcome = ifelse(war == 1 ,'civil_war','no_war'))
+repdata$outcome <- as.factor(repdata$outcome)
 
-#roc_nb <- data.frame(fpr=unlist(perf_nb@x.values), #tpr=unlist(perf_nb@y.values))
-#roc_nb$method <- "naive bayes"
+set.seed(42)
+ndx <- sample(nrow(repdata), floor(nrow(repdata) * 0.9))
+train <- repdata[ndx,]
+test <- repdata[-ndx,]
+xTrain <- train[,-70]
+yTrain <- train$outcome
+xTest <- test[,-70]
+yTest <- test$outcome
+# model <- naiveBayes(xTrain, yTrain)
+# summary(model)
+model1 <- naiveBayes(outcome ~ warl + lpopl1 + lmtnest
++ ncontig + nwstate + instab + polity2l + ethfrac + relfrac,  data = train, family = "binomial")
+summary(model1)
+df1 <- data.frame(actual = yTest, pred = predict(model1, xTest))
 
-roc_lr <- data.frame(fpr=unlist(perf_lr@x.values), tpr=unlist(perf_lr@y.values))
-roc_lr$method <- "logistic regression"
+# accuracy: fraction of correct classifications
+df1 %>%
+  summarize(acc = mean(pred == actual))
+# precision: fraction of positive predictions that are actually true
+df1 %>%
+  filter(pred == 'civil_war') %>%
+  summarize(prec = mean(actual == 'civil_war'))
+# recall: fraction of true examples that we predicted to be positive
+# aka true positive rate, sensitivity
+df1 %>%
+  filter(actual == 'civil_war') %>%
+  summarize(recall = mean(pred == 'civil_war'))
+# false positive rate: fraction of false examples that we predicted to be positive
+df1 %>%
+  filter(actual == 'no_war') %>%
+  summarize(fpr = mean(pred == 'civil_war'))
+# plot histogram of predicted probabilities
+# note overconfident predictions
+probs1 <- data.frame(predict(model1, test, type="raw"))
+ggplot(probs1, aes(x = civil_war)) +
+  geom_histogram(binwidth = 0.01) +
+  scale_x_continuous(label = percent) +
+  xlab('Predicted probability of civil war') +
+  ylab('Number of examples')
+data.frame(predicted=probs1[, "civil_war"], actual=yTest) %>%
+  group_by(predicted=round(predicted*10)/10) %>%
+  summarize(num=n(), actual=mean(actual == "civil_war")) %>%
+  ggplot(data=., aes(x=predicted, y=actual, size=num)) +
+  geom_point() +
+  geom_abline(linetype=2) +
+  scale_x_continuous(labels=percent, lim=c(0,1)) +
+  scale_y_continuous(labels=percent, lim=c(0,1)) +
+  xlab('Predicted probability of civil war') +
+  ylab('Percent that are actually civil war')
+# create a ROCR object
+pred1 <- prediction(probs1[, "civil_war"], yTest)
+# create a ROCR object
+pred1 <- prediction(probs1[, "civil_war"], yTest)
+# plot ROC curve
+perf_nb1 <- performance(pred1, measure='tpr', x.measure='fpr')
+plot(perf_nb1)
+performance(pred1, 'auc')
 
-roc_lr %>%
+#comparing Naive bayes and logistic regression for predictive war
+roc_nb2 <- data.frame(fpr=unlist(perf_nb1@x.values), tpr=unlist(perf_nb1@y.values))
+roc_nb2$method <- "naive bayes"
+
+roc_lr2 <- data.frame(fpr=unlist(perf_lr@x.values), tpr=unlist(perf_lr@y.values))
+roc_lr2$method <- "logistic regression"
+
+rbind(roc_nb2, roc_lr2) %>%
   ggplot(data=., aes(x=fpr, y=tpr, linetype=method, color=method)) + 
   geom_line() +
   geom_abline(linetype=2) +
   scale_x_continuous(labels=percent, lim=c(0,1)) +
   scale_y_continuous(labels=percent, lim=c(0,1)) +
   xlab('Probability of a false alarm') +
-  ylab('Probability of detecting Civil War') +
+  ylab('Probability of detecting Civil War Onset') +
   theme(legend.position=c(0.7,0.2), legend.title=element_blank())
-```
-```{r paper-extension-acc-pred}
 
-repdata <- repdata %>% group_by(war) %>% mutate(outcome = ifelse(war == 1 ,'civil_war','no_war'))
-repdata$outcome <- as.factor(repdata$outcome)
-# View(repdata)
+```
+
+
+
+### Naive Bayes for Onset
+
+```{r onset-naive-bayes}
+
+repdata <- repdata %>% group_by(onset) %>% mutate(onset_happens = ifelse(onset == 1 ,'onset','no_onset'))
+repdata$onset_happens <- as.factor(repdata$onset_happens)
 
 set.seed(42)
 ndx <- sample(nrow(repdata), floor(nrow(repdata) * 0.9))
 train <- repdata[ndx,]
 test <- repdata[-ndx,]
 
-xTrain <- train[,-70]
-yTrain <- train$outcome
+xTrain <- train[,-71]
+yTrain <- train$onset_happens
 
-xTest <- test[,-70]
-yTest <- test$outcome
+xTest <- test[,-71]
+yTest <- test$onset_happens
 
-# model <- naiveBayes(xTrain, yTrain)
-# summary(model)
+model3 <- naiveBayes(onset_happens ~ warl + gdpenl + lpopl1 + lmtnest
++ ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data = train, family = "binomial")
 
-model1 <- naiveBayes(outcome ~ warl + lpopl1 + lmtnest
-+ ncontig + nwstate + instab + polity2l + ethfrac + relfrac,  data = train, family = "binomial")
-summary(model1)
 
-df1 <- data.frame(actual = yTest, pred = predict(model1, test))
+df3 <- data.frame(actual = yTest, pred = predict(model3, test))
 
-head(df1)
-
-table(df1)
 
 # accuracy: fraction of correct classifications
-df1 %>%
+df3 %>%
   summarize(acc = mean(pred == actual))
 
 # precision: fraction of positive predictions that are actually true
-df1 %>%
-  filter(pred == 'civil_war') %>%
-  summarize(prec = mean(actual == 'civil_war'))
+df3 %>%
+  filter(pred == 'onset') %>%
+  summarize(prec = mean(actual == 'onset'))
 
 # recall: fraction of true examples that we predicted to be positive
 # aka true positive rate, sensitivity
-df1 %>%
-  filter(actual == 'civil_war') %>%
-  summarize(recall = mean(pred == 'civil_war'))
+df3 %>%
+  filter(actual == 'onset') %>%
+  summarize(recall = mean(pred == 'onset'))
 
 # false positive rate: fraction of false examples that we predicted to be positive
-df1 %>%
-  filter(actual == 'no_war') %>%
-  summarize(fpr = mean(pred == 'civil_war'))
+df3 %>%
+  filter(actual == 'no_onset') %>%
+  summarize(fpr = mean(pred == 'onset'))
 
 # plot histogram of predicted probabilities
 # note overconfident predictions
-probs1 <- data.frame(predict(model1, test, type="raw"))
+probs3 <- data.frame(predict(model3, test, type="raw"))
 
-ggplot(probs1, aes(x = civil_war)) +
+ggplot(probs3, aes(x = onset)) +
   geom_histogram(binwidth = 0.01) +
   scale_x_continuous(label = percent) +
-  xlab('Predicted probability of civil war') +
+  xlab('Predicted probability of civil war onset') +
   ylab('Number of examples')
 
-data.frame(predicted=probs1[, "civil_war"], actual=yTest) %>%
+data.frame(predicted=probs3[, "onset"], actual=yTest) %>%
   group_by(predicted=round(predicted*10)/10) %>%
-  summarize(num=n(), actual=mean(actual == "civil_war")) %>%
+  summarize(num=n(), actual=mean(actual == 1)) %>%
   ggplot(data=., aes(x=predicted, y=actual, size=num)) +
   geom_point() +
   geom_abline(linetype=2) +
   scale_x_continuous(labels=percent, lim=c(0,1)) +
   scale_y_continuous(labels=percent, lim=c(0,1)) +
-  xlab('Predicted probability of civil war') +
-  ylab('Percent that are actually civil war')
+  xlab('Predicted probability of civil war onset') +
+  ylab('Percent that are actually civil war onset')
 
 # create a ROCR object
-pred1 <- prediction(probs1[, "civil_war"], yTest)
+pred3 <- prediction(probs3[, "onset"], yTest)
 
 # create a ROCR object
-pred1 <- prediction(probs1[, "civil_war"], yTest)
+pred3 <- prediction(probs3[, "onset"], yTest)
 
 # plot ROC curve
-perf_nb1 <- performance(pred1, measure='tpr', x.measure='fpr')
-plot(perf_nb1)
-performance(pred1, 'auc')
+perf_nb3 <- performance(pred3, measure='tpr', x.measure='fpr')
+plot(perf_nb3)
+performance(pred3, 'auc')
 
 ```
 
-```{r remove-oil-gdp}
+### Logistic for onset
 
-model1 <- naiveBayes(outcome ~ warl + lpopl1 + lmtnest
-+ ncontig + nwstate + instab + polity2l + ethfrac + relfrac,  data = train, family = "binomial")
-summary(model1)
+```{r logistic_for_onset}
 
-df1 <- data.frame(actual = yTest, pred = predict(model1, test))
+repdata <- repdata %>% group_by(war) %>% mutate(onset_happens = ifelse(onset == 1 ,'1','0'))
+repdata$onset_happens <- as.numeric(repdata$onset_happens)
 
-head(df1)
 
-table(df1)
+set.seed(42)
+ndx <- sample(nrow(repdata), floor(nrow(repdata) * 0.9))
+train <- repdata[ndx,]
+test <- repdata[-ndx,]
+
+xTrain <- train[,-71]
+yTrain <- train$onset_happens
+
+xTest <- test[,-71]
+yTest <- test$onset_happens
+
+
+model <- glm(onset_happens ~ warl + gdpenl + lpopl1 + lmtnest
++ ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data = train, family = "binomial")
+
+df5 <- data.frame(actual = yTest, log_odds = predict(model, xTest)) %>% mutate(pred = ifelse(log_odds > 0,'onset','no_onset'))
+
+
+
+
 
 # accuracy: fraction of correct classifications
-df1 %>%
+df5 %>%
   summarize(acc = mean(pred == actual))
-
 # precision: fraction of positive predictions that are actually true
-df1 %>%
-  filter(pred == 'civil_war') %>%
-  summarize(prec = mean(actual == 'civil_war'))
-
+df5 %>%
+  filter(pred == 'onset') %>%
+  summarize(prec = mean(actual == 'onset'))
 # recall: fraction of true examples that we predicted to be positive
 # aka true positive rate, sensitivity
-df1 %>%
-  filter(actual == 'civil_war') %>%
-  summarize(recall = mean(pred == 'civil_war'))
-
+df5 %>%
+  filter(actual == 'onset') %>%
+  summarize(recall = mean(pred == 'onset'))
 # false positive rate: fraction of false examples that we predicted to be positive
-df1 %>%
-  filter(actual == 'no_war') %>%
-  summarize(fpr = mean(pred == 'civil_war'))
-
+df5 %>%
+  filter(actual == 'no_onset') %>%
+  summarize(fpr = mean(pred == 'onset'))
+head(df)
 # plot histogram of predicted probabilities
 # note overconfident predictions
-probs1 <- data.frame(predict(model1, test, type="raw"))
 
-ggplot(probs1, aes(x = civil_war)) +
+## plot histogram of predicted probabilities
+test$probs <- predict(model, test, type="response")
+ggplot(test, aes(x = probs)) +
   geom_histogram(binwidth = 0.01) +
-  scale_x_continuous(label = percent) +
-  xlab('Predicted probability of civil war') +
+  xlab('Predicted probability of Civil War Onset') +
   ylab('Number of examples')
 
-data.frame(predicted=probs1[, "civil_war"], actual=yTest) %>%
+#Plot calibration
+data.frame(predicted=test$probs, actual=yTest) %>%
   group_by(predicted=round(predicted*10)/10) %>%
-  summarize(num=n(), actual=mean(actual == "civil_war")) %>%
+  summarize(num=n(), actual=mean(actual == "war")) %>%
   ggplot(data=., aes(x=predicted, y=actual, size=num)) +
   geom_point() +
   geom_abline(linetype=2) +
   scale_x_continuous(labels=percent, lim=c(0,1)) +
   scale_y_continuous(labels=percent, lim=c(0,1)) +
-  xlab('Predicted probability of civil war') +
-  ylab('Percent that are actually civil war')
+  xlab('Predicted probability of Civil War Onset') +
+  ylab('Percent that are actually civil war onset')
 
-# create a ROCR object
-pred1 <- prediction(probs1[, "civil_war"], yTest)
+#ROC Curve
+pred <- prediction(test$probs, yTest)
+perf_lr2 <- performance(pred, measure='tpr', x.measure='fpr')
+plot(perf_lr2)
+performance(pred, 'auc')
 
-# create a ROCR object
-pred1 <- prediction(probs1[, "civil_war"], yTest)
+#comparing Naive bayes and logistic regression for predictive onset
+roc_nb <- data.frame(fpr=unlist(perf_nb3@x.values), tpr=unlist(perf_nb3@y.values))
+roc_nb$method <- "naive bayes"
 
-# plot ROC curve
-perf_nb1 <- performance(pred1, measure='tpr', x.measure='fpr')
-plot(perf_nb1)
-performance(pred1, 'auc')
+roc_lr <- data.frame(fpr=unlist(perf_lr2@x.values), tpr=unlist(perf_lr2@y.values))
+roc_lr$method <- "logistic regression"
 
-```
-
-```{r keep-one-factor}
-
-model2 <- naiveBayes(outcome ~ instab ,  data = train, family = "binomial")
-summary(model2)
-
-df2 <- data.frame(actual = yTest, pred = predict(model2, test))
-
-head(df2)
-
-table(df2)
-
-# accuracy: fraction of correct classifications
-df2 %>%
-  summarize(acc = mean(pred == actual))
-
-# precision: fraction of positive predictions that are actually true
-df2 %>%
-  filter(pred == 'civil_war') %>%
-  summarize(prec = mean(actual == 'civil_war'))
-
-# recall: fraction of true examples that we predicted to be positive
-# aka true positive rate, sensitivity
-df2 %>%
-  filter(actual == 'civil_war') %>%
-  summarize(recall = mean(pred == 'civil_war'))
-
-# false positive rate: fraction of false examples that we predicted to be positive
-df2 %>%
-  filter(actual == 'no_war') %>%
-  summarize(fpr = mean(pred == 'civil_war'))
-
-# plot histogram of predicted probabilities
-# note overconfident predictions
-probs2 <- data.frame(predict(model2, test, type="raw"))
-
-ggplot(probs2, aes(x = civil_war)) +
-  geom_histogram(binwidth = 0.01) +
-  scale_x_continuous(label = percent) +
-  xlab('Predicted probability of civil war') +
-  ylab('Number of examples')
-
-data.frame(predicted=probs2[, "civil_war"], actual=yTest) %>%
-  group_by(predicted=round(predicted*10)/10) %>%
-  summarize(num=n(), actual=mean(actual == "civil_war")) %>%
-  ggplot(data=., aes(x=predicted, y=actual, size=num)) +
-  geom_point() +
+rbind(roc_nb, roc_lr) %>%
+  ggplot(data=., aes(x=fpr, y=tpr, linetype=method, color=method)) + 
+  geom_line() +
   geom_abline(linetype=2) +
   scale_x_continuous(labels=percent, lim=c(0,1)) +
   scale_y_continuous(labels=percent, lim=c(0,1)) +
-  xlab('Predicted probability of civil war') +
-  ylab('Percent that are actually civil war')
+  xlab('Probability of a false alarm') +
+  ylab('Probability of detecting Civil War Onset') +
+  theme(legend.position=c(0.7,0.2), legend.title=element_blank())
 
-# create a ROCR object
-pred2 <- prediction(probs2[, "civil_war"], yTest)
 
-# create a ROCR object
-pred2 <- prediction(probs2[, "civil_war"], yTest)
-
-# plot ROC curve
-perf_nb2 <- performance(pred2, measure='tpr', x.measure='fpr')
-plot(perf_nb2)
-performance(pred2, 'auc')
 
 ```
+
+
 
 ```{r}
 sessionInfo()
