@@ -201,6 +201,9 @@ rep_data_eth %>%
 
 ```
 
+
+# Replicating column 1 of table 1
+
 ```{r table-1-first-column-replication}
 
 # using everything the paper does for table 1
