@@ -22,6 +22,7 @@ library(scales)
 library(ROCR)
 library(pROC)
 library(e1071)
+library(formattable)
 
 theme_set(theme_bw())
 
@@ -67,8 +68,16 @@ It includes information on the contries: economy, location, population, employme
 
 
 ### Our conclusion for the extensions
-### By Continent:
+### By Continent 
 The reason we wanted to see how the civil wars broke down by continent is that we could more accurately use a  historical events timeline. So we know that the end of a Cold War was not a as important event as people originally claims. The Cold War ended in 1991, ans you can see from the figure it was in fact South Africa region that has a increase along with Asia, but eastern European actually saw a decrease after that time period. Before 1960 the civil wars was dominated by Asia and Eastern Europe (which historically is accurate). Then the colonial civil wars started to take place (North Africa and Middle East/ South Africa), and consistently played a key rile in the overall average of the civil wars in the world.
+
+We can see that a short time after World War II the only two regions that had civil wars was East Europe and Asia, which complety makes sense Asia was still deveoloping (from colonialism) And East Europe was engulfed by USSR so they tried to reble to have their countries back.
+
+Another war we can look at our result is through an economic view. We know that after World War II the victors had an economic growth period called the Golden Age starting at 1950 which lasted until early 1970's. So the countries that were involved in the Golden Age saw less civil wars during that time period. However, 1971 was the collapse of the Bretton Woods Monetary system, then 1973 was an oil crisis, followed by the american stock market crashing/recession from 1973-1975. These events could suggest why we saw a increase in South African and North Africa/Middle East civil wars, as colonialism was falling and the oil crisis brought a downturn to their economy which drove them to civil wars.
+
+Then with the collaspe of the Soviet Union in late 1991 brought some civil wars to East Europe and Asia, but from what we can see it was not a true indicator of civil wars (from the percentages).
+
+We believe that the rise of the South Africa civil wars in the 90's(after the colonial revolutions) was due to mineral resources. Internal conflict was brought up due to different groups of a recently developed country fighting for minerals in order to get money. 
 
 ### Predictability of model 
 
@@ -211,64 +220,182 @@ yTest <- as.factor(test$onset)
 
 # Extensions
 
-```{r paper-extension civil war by continent}
-sumwars_per_year <- repdata %>% group_by(year) %>% filter(war == 1) %>%summarize(count_wars_total = sum(wars))
+```{r paper-extension civil war by region}
 
-wars_per_year <- repdata %>% group_by(year) %>%filter(war == 1) %>%summarize(count_wars = sum(war))
+#First five lines filter the oringal data (repdata) and such that we create the total number of civil wars,
+#then the number of wars per year
+# then just the number of countries, 
+#from this we can create the perc_civil_war where it is the same as figure2
 
-raw_num_countries <- repdata %>% group_by(year) %>% summarize(count_countries = sum(n())) %>%ungroup(year)
+
+
+
+sumwars_per_year <- repdata %>%
+  group_by(year) %>%
+  filter(war == 1) %>%
+  summarize(
+    count_wars_total = sum(wars)
+  )
+
+wars_per_year <- repdata %>%
+  group_by(year) %>%
+  filter(war == 1) %>%
+  summarize(
+    count_wars = sum(war)
+  )
+
+raw_num_countries <- repdata %>%
+  group_by(year) %>%
+  summarize(
+    count_countries = sum(n())
+  ) %>%
+  ungroup(year)
 
 perc_civil_war <- merge(wars_per_year, raw_num_countries, by = "year")
 perc_civil_war <- merge(perc_civil_war, sumwars_per_year, by = "year")
-#perc_civil_war$perc <- (perc_civil_war$count_wars/perc_civil_war$count_countries)*100
 
-southamerica <- repdata  %>% 
-  filter (lamerica == 1)
+#We then want to filter the original by region: South America, Western, East Europe, 
+#South Africa, Asia, and North Africa/Middle East
+#Then take the total of civil wars per for each region
+# then normalize them as percents by dividing each by the perc_civil_war from above
 
-wars_per_year_SA <- southamerica %>% group_by(year) %>%
-  summarize(count_wars = sum(war))
 
+#South America
+southamerica <- repdata  %>% filter (lamerica == 1) 
+wars_per_year_SA <- southamerica %>% group_by( year) %>% summarize(count_wars = sum(war))
 percent_SA <- (wars_per_year_SA$count_wars/perc_civil_war$count_wars)
-plot(wars_per_year_SA$year, percent_SA, axes = FALSE,
-     ylim = c(0, 1), xlim = c(1945, 2000), xlab = "" , ylab = "", type = "l", 
-     col = "purple", main = "% of Civil Wars by Continent (1945-1999)")
 
+#Western
 western <- repdata %>% filter (western == 1)
 wars_per_year_WS <- western %>% group_by(year)  %>% summarize(count_wars = sum(war))
 percent_WS <- (wars_per_year_WS$count_wars/perc_civil_war$count_wars)
-lines(wars_per_year_WS$year, percent_WS, col = "green")
 
-easteurope <- repdata  %>% filter (eeurop == 1)
+#East Europe
+easteurope <- repdata  %>% filter (eeurop == 1) 
 wars_per_year_EE <- easteurope %>% group_by(year)  %>% summarize(count_wars = sum(war))
 percent_EE <- (wars_per_year_SA$count_wars/perc_civil_war$count_wars)
-lines(wars_per_year_EE$year, percent_EE, col = "coral")
 
-southafrica <- repdata  %>% filter (ssafrica == 1)
+#South Africa
+southafrica <- repdata  %>% filter (ssafrica == 1) 
 wars_per_year_SAF <- southafrica%>% group_by(year)  %>% summarize(count_wars = sum(war))
 percent_SAF <- (wars_per_year_SAF$count_wars/perc_civil_war$count_wars)
-lines(wars_per_year_SAF$year, percent_SAF, col = "blue")
 
+#Asia
 asia <- repdata  %>% filter (asia == 1)
-wars_per_year_AS <- asia %>% group_by(year)  %>% summarize(count_wars = sum(war))
+wars_per_year_AS <- asia %>% group_by(year) %>% summarize(count_wars = sum(war))
 percent_AS <- (wars_per_year_AS$count_wars/perc_civil_war$count_wars)
-lines(wars_per_year_AS$year, percent_AS, col = "red")
 
-northafricamiddleeast <- repdata %>% filter (nafrme == 1)
-wars_per_year_NAM <- northafricamiddleeast %>% group_by(year)  %>% summarize(count_wars = sum(war))
+#North African and Middle East
+northafricamiddleeast <- repdata %>% filter (nafrme == 1) 
+wars_per_year_NAM <- northafricamiddleeast %>% group_by(year) %>% summarize(count_wars = sum(war)) 
 percent_NAM <- (wars_per_year_NAM$count_wars/perc_civil_war$count_wars)
+
+
+#Plot each continent percent civil war on same plot to show differences
+plot(wars_per_year_SA$year, percent_SA, axes = FALSE,
+     ylim = c(0, 1), xlim = c(1945, 2000), xlab = "" , ylab = "", type = "l", 
+     col = "purple", main = "% of Civil Wars by Continent (1945-1999)")
+lines(wars_per_year_WS$year, percent_WS, col = "green")
+lines(wars_per_year_EE$year, percent_EE, col = "coral")
+lines(wars_per_year_SAF$year, percent_SAF, col = "blue")
+lines(wars_per_year_AS$year, percent_AS, col = "red")
 lines(wars_per_year_NAM$year, percent_NAM, col = "black")
 
-#sumwars_per_year <- repdata %>% group_by(year) %>% filter(war == 1) %>% summarize(count_wars = sum(wars) )
-#lines(sumwars_per_year$year, sumwars_per_year$count_wars, col = "darkgreen")
-
+#Label plot x/y axis
 axis(2, ylim = c(0, 1), col = "black", las = 1)
 axis(1, xlim = c(1945, 1999), col = "black", las = 1)
 mtext("Percent ", side = 2, col = "black", line = 2.5)
 mtext("Year", side = 1, col = "black", line = 2.5)
-#legend("topleft", legend = c("South America", "North America & Western Europe", "Eastern Europe","South Africa", "Asia", "North Africa & Middle East", "Total # of Civil Wars" ), 
-#text.col = c("purple", "green", "coral", "blue", "red", "orange", "darkgreen"), col = c("purple", "green", "coral", "blue", "red", "orange", "darkgreen"), lty = 1:2, cex = 0.5)
-legend("topright", legend = c("South America", "North America & Western Europe", "Eastern Europe","South Africa", "Asia", "North Africa & Middle East" ), 
-       text.col = c("purple", "green", "coral", "blue", "red", "black"), col = c("purple", "green", "coral", "blue", "red", "black"), lty = 1:2, cex = 0.5)
+
+#Give a legend to plot for each continent
+legend("topright", legend = c("South America", "North America & Western Europe", "Eastern Europe","South Africa", "Asia", "North Africa & Middle East" ), text.col = c("purple", "green", "coral", "blue", "red", "black"), col = c("purple", "green", "coral", "blue", "red", "black"), lty = 1:2, cex = 0.5)
+
+#We wanted to see each country that had a civil war in each continent and then the time frame for it
+
+#we filtered by country and year looking countries that had civil wars
+#ordered it by year, then use ave/paste0  to find the time frame of each civil 
+#then took away duplicates
+#Its important to note that if a country had multiple civil wars over various time frames, we took the date of the first
+#and the end date of the last for the time frames. This is because there was still internal disruptionduring the "off" years
+#Which is why Russia is shown as 1946-1999, becasue they had their internal disputes early on 1946-1950, then was a part of the Cold War,
+#up until the contry fell of which the 1992-1999 civil wars started
+
+#South America
+wars_country_year_SA <- southamerica %>% group_by(country,year) %>% filter(war==1 )%>% summarize(Year = year)
+wars_country_year_SA <- wars_country_year_SA [order(wars_country_year_SA$Year),]
+wars_country_year_SA$min = ave(wars_country_year_SA$Year, wars_country_year_SA$country, FUN = min)
+wars_country_year_SA$max = ave(wars_country_year_SA$Year, wars_country_year_SA$country, FUN = max)
+wars_country_year_SA$range = paste0(wars_country_year_SA$min, " - ", wars_country_year_SA$max)
+wars_country_year_SA = wars_country_year_SA[!duplicated(wars_country_year_SA$country),]
+wars_country_year_SA <- wars_country_year_SA[,c(1,6)]
+names(wars_country_year_SA) <- c("South America", "Conflict Time Frame")
+
+
+#Western Countries
+wars_country_year_W <- western %>% group_by(country,year) %>% filter(war==1 )%>% summarize(Year = year)
+wars_country_year_W <- wars_country_year_W [order(wars_country_year_W$Year),]
+wars_country_year_W$min = ave(wars_country_year_W$Year, wars_country_year_W$country, FUN = min)
+wars_country_year_W$max = ave(wars_country_year_W$Year, wars_country_year_W$country, FUN = max)
+wars_country_year_W$range = paste0(wars_country_year_W$min, " - ", wars_country_year_W$max)
+wars_country_year_W = wars_country_year_W[!duplicated(wars_country_year_W$country),]
+wars_country_year_W <- wars_country_year_W[,c(1,6)]
+names(wars_country_year_W) <- c("Western Countries", "Conflict Time Frame")
+
+
+#East Europe
+wars_country_year_EE <- easteurope %>% group_by(country,year) %>% filter(war==1 )%>% summarize(Year = year)
+wars_country_year_EE <- wars_country_year_EE [order(wars_country_year_EE$Year),]
+wars_country_year_EE$min = ave(wars_country_year_EE$Year, wars_country_year_EE$country, FUN = min)
+wars_country_year_EE$max = ave(wars_country_year_EE$Year, wars_country_year_EE$country, FUN = max)
+wars_country_year_EE$range = paste0(wars_country_year_EE$min, " - ", wars_country_year_EE$max)
+wars_country_year_EE = wars_country_year_EE[!duplicated(wars_country_year_EE$country),]
+wars_country_year_EE <- wars_country_year_EE[,c(1,6)]
+names(wars_country_year_EE) <- c("East Europe", "Conflict Time Frame")
+
+
+#South Africa
+wars_country_year_SAF <- southafrica %>% group_by(country,year) %>% filter(war==1 )%>% summarize(Year = year)
+wars_country_year_SAF <- wars_country_year_SAF [order(wars_country_year_SAF$Year),]
+wars_country_year_SAF$min = ave(wars_country_year_SAF$Year, wars_country_year_SAF$country, FUN = min)
+wars_country_year_SAF$max = ave(wars_country_year_SAF$Year, wars_country_year_SAF$country, FUN = max)
+wars_country_year_SAF$range = paste0(wars_country_year_SAF$min, " - ", wars_country_year_SAF$max)
+wars_country_year_SAF = wars_country_year_SAF[!duplicated(wars_country_year_SAF$country),]
+wars_country_year_SAF <- wars_country_year_SAF[,c(1,6)]
+names(wars_country_year_SAF) <- c("South Africa", "Conflict Time Frame")
+
+
+#Asia
+wars_country_year_A <- asia %>% group_by(country,year) %>% filter(war==1 )%>% summarize(Year = year)
+wars_country_year_A <- wars_country_year_A [order(wars_country_year_A$Year),]
+wars_country_year_A$min = ave(wars_country_year_A$Year, wars_country_year_A$country, FUN = min)
+wars_country_year_A$max = ave(wars_country_year_A$Year, wars_country_year_A$country, FUN = max)
+wars_country_year_A$range = paste0(wars_country_year_A$min, " - ", wars_country_year_A$max)
+wars_country_year_A = wars_country_year_A[!duplicated(wars_country_year_A$country),]
+wars_country_year_A <- wars_country_year_A[,c(1,6)]
+names(wars_country_year_A) <- c("Asia", "Conflict Time Frame")
+
+
+#North Africa and Middle East
+wars_country_year_NA <- northafricamiddleeast %>% group_by(country,year) %>% filter(war==1 )%>% summarize(Year = year)
+wars_country_year_NA <- wars_country_year_NA [order(wars_country_year_NA$Year),]
+wars_country_year_NA$min = ave(wars_country_year_NA$Year, wars_country_year_NA$country, FUN = min)
+wars_country_year_NA$max = ave(wars_country_year_NA$Year, wars_country_year_NA$country, FUN = max)
+wars_country_year_NA$range = paste0(wars_country_year_NA$min, " - ", wars_country_year_NA$max)
+wars_country_year_NA = wars_country_year_NA[!duplicated(wars_country_year_NA$country),]
+wars_country_year_NA <- wars_country_year_NA[,c(1,6)]
+names(wars_country_year_NA) <- c("North Africa and Middle East", "Conflict Time Frame")
+
+
+
+#Prints all tables for the Region
+formattable(wars_country_year_SA,  align = c("l", rep("r", NCOL(wars_country_year_SA) - 1)))
+formattable(wars_country_year_W,  align = c("l", rep("r", NCOL(wars_country_year_W) - 1)))
+formattable(wars_country_year_EE,  align = c("l", rep("r", NCOL(wars_country_year_EE) - 1)))
+formattable(wars_country_year_SAF,  align = c("l", rep("r", NCOL(wars_country_year_SAF) - 1)))
+formattable(wars_country_year_A,  align = c("l", rep("r", NCOL(wars_country_year_A) - 1)))
+formattable(wars_country_year_NA,  align = c("l", rep("r", NCOL(wars_country_year_NA) - 1)))
+
+
 
 ```
 
