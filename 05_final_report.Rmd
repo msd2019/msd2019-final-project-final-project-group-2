@@ -61,11 +61,15 @@ Originally we had used the data as is, but realized that one row had onset==4 so
 # Conclusions
 The paper concludes: "The prevalence of internal war in the 1990s is mainly the result of an accumulation of protracted conflicts since the 1950s rather than a sudden change associated with a new, post-Cold War international system."
 
+The authors of the paper further write that "...the civil wars of the period have structural roots, in the combination of a simple, robust military technology and decolonization, which created an international system numerically dominated by fragile states with limited administrative control of their peripheries." 
+Having a poor economy with a bleak future can make joining an insurgency an appealing option for someone who feels they will not have a successful future. So an environment with a weak government that doesn't back up a robust economic system is a good breeding ground for an insurgency. Ethnic diversity on it's own may not necessarily preclude a civil war becuase as long as there are jobs available and the potential to succeed in life, younger people will not see joining a war as an appealing option.
 
 
-### Our conclusion for the replication of Figures 1&2 (AYSHA)
 
+### Our conclusion for the replication of Figures 1&2 
+Figure 1 plots the number of ongoing civil wars and percent of countries with civil war over tie (1945 - 1999). This plot was fairly simple to replicate, by grouping by year.
 
+Figure 2 is a contour plot that plots the percentile of countries in civil war versus population fractions of the majority ethnic group and GDP. This plot is very difficult to understand, so we broke it down into 2 plots: one that plots percentile of countries in civil war versus GDP per capita, the other per fraction of the largest ethnicity group. The two plots we produced were actually not that easy to decipher either. This explains why the authors chose a contour plot. 
 
 ### Our conclusion for the replication of first column of table 1
 
@@ -268,6 +272,8 @@ using onset as the dependent variable.
 
 # Extensions
 
+
+
 ```{r paper-extension civil war by region}
 
 #First five lines filter the oringal data (repdata) and such that we create the total number of civil wars,
@@ -436,15 +442,14 @@ names(wars_country_year_NA) <- c("North Africa and Middle East", "Conflict Time 
 
 
 #Prints all tables for the Region
-formattable(wars_country_year_SA,  align = c("l", rep("r", NCOL(wars_country_year_SA) - 1)))
-formattable(wars_country_year_W,  align = c("l", rep("r", NCOL(wars_country_year_W) - 1)))
-formattable(wars_country_year_EE,  align = c("l", rep("r", NCOL(wars_country_year_EE) - 1)))
-formattable(wars_country_year_SAF,  align = c("l", rep("r", NCOL(wars_country_year_SAF) - 1)))
-formattable(wars_country_year_A,  align = c("l", rep("r", NCOL(wars_country_year_A) - 1)))
-formattable(wars_country_year_NA,  align = c("l", rep("r", NCOL(wars_country_year_NA) - 1)))
 
-
-
+table(wars_country_year_SA)
+table(wars_country_year_W)
+table(wars_country_year_EE)
+table(wars_country_year_NA)
+table (wars_country_year_SAF)
+table (wars_country_year_A)
+table (wars_country_year_NA)
 ```
 ```{r paper-extension logistic regression analysis of outcome}
 repdata <-repdata[-2496, ]
