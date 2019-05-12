@@ -454,7 +454,6 @@ table (wars_country_year_NA)
 ### logistic regression analysis
 
 ```{r paper-extension logistic regression analysis}
-repdata <-repdata[-2496, ]
 repdata <- repdata %>% group_by(war) %>% mutate(outcome = ifelse(war == 1 ,'1','0'))
 repdata$outcome<- as.numeric(repdata$outcome)
 
