@@ -1,12 +1,17 @@
 ---
 title: "MSD 2019 Final Project"
-subtitle: "A replication and extension of Ethnicity, Insurgency, and Civil War by James D. Fearon & David D. Laitin, American Political Science Review"
 author: "Preston Bradham (PMB2164), Chaim Eisenbach (CE2388), Aysha Khan (ASK2256)"
-date: '`r Sys.time()`'
+date: "`r Sys.time()`"
 output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
   pdf_document:
     toc: yes
     toc_depth: 3
+subtitle: A replication and extension of Ethnicity, Insurgency, and Civil War by James
+  D. Fearon & David D. Laitin, American Political Science Review
 ---
 
 ```{r setup, include=FALSE}
@@ -73,10 +78,11 @@ Figure 1 plots the number of ongoing civil wars and percent of countries with ci
 
 Figure 2 is a contour plot that plots the percentile of countries in civil war versus population fractions of the majority ethnic group and GDP. This plot is very difficult to understand, so we broke it down into 2 plots: one that plots percentile of countries in civil war versus GDP per capita, the other per fraction of the largest ethnicity group. For Plot 2 we can see a visible linear correlation, so a good pearsons coefficent. However, on the second it's not as apparent. We tried to make the plots more legible/efficient but we see now why the authors used the more elaborate format.
 
-### Our conclusion for the replication of first column of table 1
+### Replication of first column of table 1
 
 Model 1 in Table 1 shows the results of a logit analysis.
-using onset as the dependent variable. With a standard glm model we were able to recreate column 1 of table 1. Our numbers match the papers numbers.
+Using onset as the dependent variable. With a standard glm model we were able to recreate column 1 of table 1. Our numbers match the papers numbers. We also dropped gdp and ethfrac to see what would happen.
+Using all the variables the authors use for model 1 in table 1 we get the same results. When we remove gdp we see a significant change in the intercept. When we remove ethfrac the difference is negligible.
 
 ### Our conclusions for the extensions
 ### By Continent 
@@ -94,8 +100,8 @@ We believe that the rise of the South Africa civil wars in the 90's(after the co
 
 ### Modeling
 
-We reproduced Model 1 from Table 1 - the results of a logit analysis
-using onset as the dependent variable and we got the same results as the paper. 
+We reproduced Model 1 from Table 1 - the results of a logit analysis.
+Using onset as the dependent variable and we got the same results as the paper. 
 We then tested the logit model and we tested a naive bayes model to do a side by side comparison.
 
 # Figure 1 Replication
@@ -212,8 +218,9 @@ rep_data_eth %>%
 mylogit1 <- glm(onset ~ warl + gdpenl + lpopl1 + lmtnest
 + ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data =repdata, family = "binomial")
 summary(mylogit1)
+
 # removing gdp
-mylogit2<- glm(onset ~ warl  + lpopl1 + lmtnest
+mylogit2<- glm(onset ~ warl  + lpopl1 + lmtnest 
 + ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data =repdata, family = "binomial")
 summary(mylogit2)
 # removing ethfrac
@@ -223,6 +230,7 @@ summary(mylogit3)
 
 ```
 
+Using all the variables the authors use for model 1 in table 1 we get the same results. When we remove gdp we see a significant change in the intercept. When we remove ethfrac the difference is negligible.
 
 ### Analysis using Stan and Loo
 ```{r using stan to reproduce table 1}
@@ -245,24 +253,33 @@ summary(mylogit3)
 It took too long to run the stan functions, so we commented it out becuase we kept on having to run our code. But it does show that the model that doesn't have gdp is slightly worse, which is of course expeced.
 
 
-### Some more validations on the logit model 1 
+### Validation on the logit model 1 
 ```{r validating logit model}
-data(repdata)
+#data(repdata)
 Train <- createDataPartition(repdata$onset, p=0.6, list=FALSE)
 training <- repdata[ Train, ]
 testing <- repdata[ -Train, ]
 
-mylogit1_test <- glm(as.factor(onset) ~ warl  + lpopl1 + lmtnest
+mylogit1_train <- glm(onset ~ warl  + lpopl1 + lmtnest
 + ncontig + Oil + nwstate + instab + polity2l + ethfrac + relfrac,  data = training,family = "binomial")
-mylogit1_train_pred  <- predict(mylogit1_test, data=training,type="response")
-head(mylogit1_train_pred)
-mylogit1_test_pred <- predict(mylogit1_test, data=testing,type="response")
-head(mylogit1_test_pred)
-log_odds = predict(mylogit1, testing)
+mylogit1_train_pred  <- predict(mylogit1_train, data=training,type="response")
+
+#head(mylogit1_train_pred)
+mylogit1_test_pred <- predict(mylogit1_train, data=testing,type="response",na.action = na.pass)
+#head(mylogit1_test_pred)
+log_odds_train <- predict(mylogit1_train, training)
+log_odds_test <- predict(mylogit1_train, testing)
+
+head(log_odds_test)
+head(log_odds_train)
+```
+Just experimenting with cutoff. I wasn't able to find anything that would make me want to change the cutoff.
+```{r determining threshhold}
+#test_onset <- as.vector(testing$onset)
+#log_odds_conf <- as.vector(log_odds)
+#conf_table <- table(log_odds,testing$onset)
 
 ```
-
-
 # Extensions
 
 ### Civil war by region
