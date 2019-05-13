@@ -451,9 +451,11 @@ table (wars_country_year_SAF)
 table (wars_country_year_A)
 table (wars_country_year_NA)
 ```
+
 ### logistic regression analysis
 
 ```{r paper-extension logistic regression analysis}
+
 repdata <- repdata %>% group_by(war) %>% mutate(outcome = ifelse(war == 1 ,'1','0'))
 repdata$outcome<- as.numeric(repdata$outcome)
 
@@ -501,6 +503,7 @@ ggplot(test, aes(x = probs)) +
   xlab('Predicted probability of Civil Wars') +
   ylab('Number of examples')
 
+
 #Plot calibration
 data.frame(predicted=test$probs, actual=yTest) %>%
   group_by(predicted=round(predicted*10)/10) %>%
@@ -524,6 +527,7 @@ performance(pred, 'auc')
 ### Naive Bayes for war
 
 ```{r war-naive-bayes}
+
 
 repdata <- repdata %>% group_by(war) %>% mutate(outcome = ifelse(war == 1 ,'civil_war','no_war'))
 repdata$outcome <- as.factor(repdata$outcome)
