@@ -90,10 +90,11 @@ Then with the collapse of the Soviet Union in late 1991 brought some civil wars 
 
 We believe that the rise of the South Africa civil wars in the 90's(after the colonial revolutions) was due to mineral resources. Internal conflict was brought up due to different groups of a recently developed country fighting for minerals in order to get money. 
 
-### Predictability of model 
+### Modeling
 
-We dropped one Russia becase it was the only country whose onset (which is what the paper is trying to predict on) is not 0 or 1. 
-
+We reproduced Model 1 from Table 1 - the results of a logit analysis
+using onset as the dependent variable and we got the same results as the paper. 
+We then tested the logit model and we tested a naive bayes model.
 
 # Figure 1 Replication
 
@@ -453,6 +454,11 @@ table (wars_country_year_NA)
 ```
 
 ### logistic regression analysis
+### Modeling the Predictive Probability of Civil War Outcome
+
+We start by modeling the predictive probability of a civil war outcome. This is different from what the paper strives to understand: civil war onset. Here, we take out the time factor. Much like the spam vs. email example we discussed in lecture, we just want to see how well we can predict civil war. We start by splitting the data into a train and test set, ignoring validation. We then fit a naive Bayes model with no smoothing. After, we fit a logistic regression model. We then close by comparing the two methods. 
+
+
 
 ```{r paper-extension logistic regression analysis}
 
@@ -523,7 +529,9 @@ plot(perf_lr)
 performance(pred, 'auc')
 
 ```
+###Modeling the Predictive Probability of Civil War Outcome with Naive Bayes
 
+We can think of civil war outcome as a binary vector, where 'no war' or 'civil war' are independent of each other. This means that if we see 'civil war' for one country in one year, that has nothing to do with the probability of seeing 'civil war' for that same country for a different year. We can think of the outcome as a coin flip. In reality, we know this is not the case. However, we train the data based on the following factors: previous war, GDP per capita, population, lmtnest, former colony, oil exporter, new state, instability, polity level, fraction of the largest ethnic group, and relative fraction of the largest ethnic group. 
 ### Naive Bayes for war
 
 ```{r war-naive-bayes}
